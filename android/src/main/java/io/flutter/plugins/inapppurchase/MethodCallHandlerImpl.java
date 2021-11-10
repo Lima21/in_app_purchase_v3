@@ -20,6 +20,7 @@ import com.android.billingclient.api.AcknowledgePurchaseResponseListener;
 import com.android.billingclient.api.BillingClient;
 import com.android.billingclient.api.BillingClientStateListener;
 import com.android.billingclient.api.BillingFlowParams;
+import com.android.billingclient.api.BillingFlowParams.ProrationMode;
 import com.android.billingclient.api.BillingResult;
 import com.android.billingclient.api.ConsumeParams;
 import com.android.billingclient.api.ConsumeResponseListener;
@@ -120,8 +121,14 @@ class MethodCallHandlerImpl
         break;
       case InAppPurchasePlugin.MethodNames.LAUNCH_BILLING_FLOW:
         launchBillingFlow(
-            (String) call.argument("sku"), (String) call.argument("accountId"),             (String) call.argument("obfuscatedProfileId"),
-                , result);
+                (String) call.argument("sku"),
+                (String) call.argument("accountId"),
+                (String) call.argument("obfuscatedProfileId"),
+                (String) call.argument("purchaseToken"),
+                call.hasArgument("prorationMode")
+                        ? (int) call.argument("prorationMode")
+                        : ProrationMode.UNKNOWN_SUBSCRIPTION_UPGRADE_DOWNGRADE_POLICY,
+                result);
         break;
       case InAppPurchasePlugin.MethodNames.QUERY_PURCHASES:
         queryPurchases((String) call.argument("skuType"), result);
@@ -130,15 +137,11 @@ class MethodCallHandlerImpl
         queryPurchaseHistoryAsync((String) call.argument("skuType"), result);
         break;
       case InAppPurchasePlugin.MethodNames.CONSUME_PURCHASE_ASYNC:
-        consumeAsync(
-            (String) call.argument("purchaseToken"),
-            (String) call.argument("developerPayload"),
-            result);
+        consumeAsync((String) call.argument("purchaseToken"), result);
         break;
       case InAppPurchasePlugin.MethodNames.ACKNOWLEDGE_PURCHASE:
         acknowledgePurchase(
             (String) call.argument("purchaseToken"),
-            (String) call.argument("developerPayload"),
             result);
         break;
       default:
@@ -189,8 +192,12 @@ class MethodCallHandlerImpl
         });
   }
 
-  private void launchBillingFlow(
-      String sku, @Nullable String accountId, MethodChannel.Result result) {
+  private void launchBillingFlow(String sku,
+                                 @Nullable String accountId,
+                                 @Nullable String obfuscatedProfileId,
+                                 @Nullable String purchaseToken,
+                                 int prorationMode,
+                                 MethodChannel.Result result) {
     if (billingClientError(result)) {
       return;
     }
@@ -217,15 +224,26 @@ class MethodCallHandlerImpl
     BillingFlowParams.Builder paramsBuilder =
         BillingFlowParams.newBuilder().setSkuDetails(skuDetails);
     if (accountId != null && !accountId.isEmpty()) {
-      paramsBuilder.setAccountId(accountId);
+      paramsBuilder.setObfuscatedAccountId(accountId);
     }
+
+    if (obfuscatedProfileId != null && !obfuscatedProfileId.isEmpty()) {
+      paramsBuilder.setObfuscatedProfileId(obfuscatedProfileId);
+    }
+
+
+
+    // The proration mode value has to match one of the following declared in
+    // https://developer.android.com/reference/com/android/billingclient/api/BillingFlowParams.ProrationMode
+    paramsBuilder.setReplaceSkusProrationMode(prorationMode);
+
     result.success(
         Translator.fromBillingResult(
             billingClient.launchBillingFlow(activity, paramsBuilder.build())));
   }
 
   private void consumeAsync(
-      String purchaseToken, String developerPayload, final MethodChannel.Result result) {
+      String purchaseToken, final MethodChannel.Result result) {
     if (billingClientError(result)) {
       return;
     }
@@ -240,9 +258,6 @@ class MethodCallHandlerImpl
     ConsumeParams.Builder paramsBuilder =
         ConsumeParams.newBuilder().setPurchaseToken(purchaseToken);
 
-    if (developerPayload != null) {
-      paramsBuilder.setDeveloperPayload(developerPayload);
-    }
     ConsumeParams params = paramsBuilder.build();
 
     billingClient.consumeAsync(params, listener);
@@ -310,14 +325,12 @@ class MethodCallHandlerImpl
   }
 
   private void acknowledgePurchase(
-      String purchaseToken, @Nullable String developerPayload, final MethodChannel.Result result) {
+      String purchaseToken, final MethodChannel.Result result) {
     if (billingClientError(result)) {
       return;
     }
     AcknowledgePurchaseParams params =
-        AcknowledgePurchaseParams.newBuilder()
-            .setDeveloperPayload(developerPayload)
-            .setPurchaseToken(purchaseToken)
+        AcknowledgePurchaseParams.newBuilder().setPurchaseToken(purchaseToken)
             .build();
     billingClient.acknowledgePurchase(
         params,

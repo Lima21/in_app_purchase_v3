@@ -4,12 +4,14 @@
 
 import 'dart:async';
 import 'dart:io';
+
+import 'package:flutter/foundation.dart';
+import 'package:in_app_purchase/billing_client_wrappers.dart';
+
+import './purchase_details.dart';
 import 'app_store_connection.dart';
 import 'google_play_connection.dart';
 import 'product_details.dart';
-import 'package:flutter/foundation.dart';
-import 'package:in_app_purchase/billing_client_wrappers.dart';
-import './purchase_details.dart';
 
 export 'package:in_app_purchase/billing_client_wrappers.dart';
 
@@ -206,9 +208,7 @@ abstract class InAppPurchaseConnection {
   /// Warning! Failure to call this method and get a successful response within 3 days of the purchase will result a refund on Android.
   /// The [consumePurchase] acts as an implicit [completePurchase] on Android.
   ///
-  /// The optional parameter `developerPayload` only works on Android.
-  Future<BillingResultWrapper> completePurchase(PurchaseDetails purchase,
-      {String developerPayload});
+  Future<BillingResultWrapper> completePurchase(PurchaseDetails purchase);
 
   /// (Play only) Mark that the user has consumed a product.
   ///
@@ -216,11 +216,9 @@ abstract class InAppPurchaseConnection {
   /// delivered. The user won't be able to buy the same product again until the
   /// purchase of the product is consumed.
   ///
-  /// The `developerPayload` can be specified to be associated with this consumption.
   ///
   /// This throws an [UnsupportedError] on iOS.
-  Future<BillingResultWrapper> consumePurchase(PurchaseDetails purchase,
-      {String developerPayload});
+  Future<BillingResultWrapper> consumePurchase(PurchaseDetails purchase);
 
   /// Query all previous purchases.
   ///

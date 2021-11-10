@@ -7,6 +7,7 @@ import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:in_app_purchase/src/in_app_purchase/purchase_details.dart';
+
 import '../../billing_client_wrappers.dart';
 import 'in_app_purchase_connection.dart';
 import 'product_details.dart';
@@ -75,22 +76,23 @@ class GooglePlayConnection
   }
 
   @override
-  Future<BillingResultWrapper> completePurchase(PurchaseDetails purchase,
-      {String developerPayload}) async {
+  Future<BillingResultWrapper> completePurchase(
+      PurchaseDetails purchase) async {
     if (purchase.billingClientPurchase.isAcknowledged) {
       return BillingResultWrapper(responseCode: BillingResponse.ok);
     }
-    return await billingClient.acknowledgePurchase(
-        purchase.verificationData.serverVerificationData,
-        developerPayload: developerPayload);
+    return await billingClient
+        .acknowledgePurchase(purchase.verificationData.serverVerificationData);
   }
 
   @override
-  Future<BillingResultWrapper> consumePurchase(PurchaseDetails purchase,
-      {String developerPayload}) {
-    return billingClient.consumeAsync(
-        purchase.verificationData.serverVerificationData,
-        developerPayload: developerPayload);
+  Future<BillingResultWrapper> consumePurchase(PurchaseDetails purchase) {
+    if (purchase.verificationData == null) {
+      throw ArgumentError(
+          'consumePurchase unsuccessful. The `purchase.verificationData` is not valid');
+    }
+    return billingClient
+        .consumeAsync(purchase.verificationData.serverVerificationData);
   }
 
   @override

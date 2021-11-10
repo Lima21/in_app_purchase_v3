@@ -3,14 +3,16 @@
 // found in the LICENSE file.
 
 import 'dart:async';
-import 'package:flutter/services.dart';
+
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:json_annotation/json_annotation.dart';
+
 import '../../billing_client_wrappers.dart';
 import '../channel.dart';
+import 'enum_converters.dart';
 import 'purchase_wrapper.dart';
 import 'sku_details_wrapper.dart';
-import 'enum_converters.dart';
 
 /// Method identifier for the OnPurchaseUpdated method channel method.
 @visibleForTesting
@@ -172,11 +174,15 @@ class BillingClient {
   /// and [the given
   /// accountId](https://developer.android.com/reference/com/android/billingclient/api/BillingFlowParams.Builder.html#setAccountId(java.lang.String)).
   Future<BillingResultWrapper> launchBillingFlow(
-      {@required String sku, String accountId}) async {
+      {@required String sku,
+      String accountId,
+      String obfuscatedProfileId}) async {
     assert(sku != null);
+
     final Map<String, dynamic> arguments = <String, dynamic>{
       'sku': sku,
       'accountId': accountId,
+      'obfuscatedProfileId': obfuscatedProfileId
     };
     return BillingResultWrapper.fromJson(
         await channel.invokeMapMethod<String, dynamic>(
@@ -230,18 +236,14 @@ class BillingClient {
   /// Consumption is done asynchronously. The method returns a Future containing a [BillingResultWrapper].
   ///
   /// The `purchaseToken` must not be null.
-  /// The `developerPayload` is the developer data associated with the purchase to be consumed, it defaults to null.
-  ///
   /// This wraps [`BillingClient#consumeAsync(String, ConsumeResponseListener)`](https://developer.android.com/reference/com/android/billingclient/api/BillingClient.html#consumeAsync(java.lang.String,%20com.android.billingclient.api.ConsumeResponseListener))
-  Future<BillingResultWrapper> consumeAsync(String purchaseToken,
-      {String developerPayload}) async {
+  Future<BillingResultWrapper> consumeAsync(String purchaseToken) async {
     assert(purchaseToken != null);
     return BillingResultWrapper.fromJson(await channel
         .invokeMapMethod<String, dynamic>(
             'BillingClient#consumeAsync(String, ConsumeResponseListener)',
             <String, String>{
           'purchaseToken': purchaseToken,
-          'developerPayload': developerPayload,
         }));
   }
 
@@ -265,15 +267,15 @@ class BillingClient {
   /// The `developerPayload` is the developer data associated with the purchase to be consumed, it defaults to null.
   ///
   /// This wraps [`BillingClient#acknowledgePurchase(String, AcknowledgePurchaseResponseListener)`](https://developer.android.com/reference/com/android/billingclient/api/BillingClient.html#acknowledgePurchase(com.android.billingclient.api.AcknowledgePurchaseParams,%20com.android.billingclient.api.AcknowledgePurchaseResponseListener))
-  Future<BillingResultWrapper> acknowledgePurchase(String purchaseToken,
-      {String developerPayload}) async {
+  Future<BillingResultWrapper> acknowledgePurchase(
+    String purchaseToken,
+  ) async {
     assert(purchaseToken != null);
     return BillingResultWrapper.fromJson(await channel.invokeMapMethod<String,
             dynamic>(
         'BillingClient#(AcknowledgePurchaseParams params, (AcknowledgePurchaseParams, AcknowledgePurchaseResponseListener)',
         <String, String>{
           'purchaseToken': purchaseToken,
-          'developerPayload': developerPayload,
         }));
   }
 
@@ -376,4 +378,44 @@ enum SkuType {
   /// A product requiring a recurring charge over time.
   @JsonValue('subs')
   subs,
+}
+
+/// Enum representing the proration mode.
+///
+/// When upgrading or downgrading a subscription, set this mode to provide details
+/// about the proration that will be applied when the subscription changes.
+///
+/// Wraps [`BillingFlowParams.ProrationMode`](https://developer.android.com/reference/com/android/billingclient/api/BillingFlowParams.ProrationMode)
+/// See the linked documentation for an explanation of the different constants.
+enum ProrationMode {
+// WARNING: Changes to this class need to be reflected in our generated code.
+// Run `flutter packages pub run build_runner watch` to rebuild and watch for
+// further changes.
+
+  /// Unknown upgrade or downgrade policy.
+  @JsonValue(0)
+  unknownSubscriptionUpgradeDowngradePolicy,
+
+  /// Replacement takes effect immediately, and the remaining time will be prorated and credited to the user.
+  ///
+  /// This is the current default behavior.
+  @JsonValue(1)
+  immediateWithTimeProration,
+
+  /// Replacement takes effect immediately, and the billing cycle remains the same.
+  ///
+  /// The price for the remaining period will be charged.
+  /// This option is only available for subscription upgrade.
+  @JsonValue(2)
+  immediateAndChargeProratedPrice,
+
+  /// Replacement takes effect immediately, and the new price will be charged on next recurrence time.
+  ///
+  /// The billing cycle stays the same.
+  @JsonValue(3)
+  immediateWithoutProration,
+
+  /// Replacement takes effect when the old plan expires, and the new price will be charged at the same time.
+  @JsonValue(4)
+  deferred,
 }

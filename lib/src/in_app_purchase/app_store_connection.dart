@@ -7,11 +7,12 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:in_app_purchase/src/in_app_purchase/purchase_details.dart';
+import 'package:in_app_purchase/src/store_kit_wrappers/enum_converters.dart';
+import 'package:in_app_purchase/store_kit_wrappers.dart';
+
+import '../../billing_client_wrappers.dart';
 import 'in_app_purchase_connection.dart';
 import 'product_details.dart';
-import 'package:in_app_purchase/store_kit_wrappers.dart';
-import 'package:in_app_purchase/src/store_kit_wrappers/enum_converters.dart';
-import '../../billing_client_wrappers.dart';
 
 /// An [InAppPurchaseConnection] that wraps StoreKit.
 ///
@@ -73,16 +74,15 @@ class AppStoreConnection implements InAppPurchaseConnection {
   }
 
   @override
-  Future<BillingResultWrapper> completePurchase(PurchaseDetails purchase,
-      {String developerPayload}) async {
+  Future<BillingResultWrapper> completePurchase(
+      PurchaseDetails purchase) async {
     await _skPaymentQueueWrapper
         .finishTransaction(purchase.skPaymentTransaction);
     return BillingResultWrapper(responseCode: BillingResponse.ok);
   }
 
   @override
-  Future<BillingResultWrapper> consumePurchase(PurchaseDetails purchase,
-      {String developerPayload}) {
+  Future<BillingResultWrapper> consumePurchase(PurchaseDetails purchase) {
     throw UnsupportedError('consume purchase is not available on Android');
   }
 

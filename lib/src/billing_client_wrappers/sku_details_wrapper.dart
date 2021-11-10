@@ -3,8 +3,10 @@
 // license that can be found in the LICENSE file.
 
 import 'dart:ui' show hashValues;
+
 import 'package:flutter/foundation.dart';
 import 'package:json_annotation/json_annotation.dart';
+
 import 'billing_client_wrapper.dart';
 import 'enum_converters.dart';
 
@@ -35,7 +37,6 @@ class SkuDetailsWrapper {
     @required this.subscriptionPeriod,
     @required this.title,
     @required this.type,
-    @required this.isRewarded,
     @required this.originalPrice,
     @required this.originalPriceAmountMicros,
   });
@@ -60,8 +61,9 @@ class SkuDetailsWrapper {
   /// [introductoryPrice] in micro-units 990000
   final String introductoryPriceMicros;
 
-  /// The number of billing perios that [introductoryPrice] is valid for ("2").
-  final String introductoryPriceCycles;
+  /// The number of subscription billing periods for which the user will be given the introductory price, such as 3.
+  /// Returns 0 if the SKU is not a subscription or doesn't have an introductory period.
+  final int introductoryPriceCycles;
 
   /// The billing period of [introductoryPrice], in ISO 8601 format.
   final String introductoryPricePeriod;
@@ -86,9 +88,6 @@ class SkuDetailsWrapper {
 
   /// The [SkuType] of the product.
   final SkuType type;
-
-  /// False if the product is paid.
-  final bool isRewarded;
 
   /// The original price that the user purchased this product for.
   final String originalPrice;
@@ -116,7 +115,6 @@ class SkuDetailsWrapper {
         typedOther.subscriptionPeriod == subscriptionPeriod &&
         typedOther.title == title &&
         typedOther.type == type &&
-        typedOther.isRewarded == isRewarded &&
         typedOther.originalPrice == originalPrice &&
         typedOther.originalPriceAmountMicros == originalPriceAmountMicros;
   }
@@ -136,7 +134,6 @@ class SkuDetailsWrapper {
         subscriptionPeriod.hashCode,
         title.hashCode,
         type.hashCode,
-        isRewarded.hashCode,
         originalPrice,
         originalPriceAmountMicros);
   }
